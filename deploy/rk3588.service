@@ -1,0 +1,23 @@
+[Unit]
+Description=Pastry Production Line AI Quality Inspection System
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User={{PROJECT_DIR}}
+WorkingDirectory={{PROJECT_DIR}}
+ExecStart={{PROJECT_DIR}}/venv/bin/python {{PROJECT_DIR}}/run.py --engine rknn
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=FLASK_ENV=production
+
+# 安全限制
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths={{PROJECT_DIR}}/data
+
+[Install]
+WantedBy=multi-user.target

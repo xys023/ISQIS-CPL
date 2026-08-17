@@ -1,0 +1,143 @@
+# ============================================================
+# 糕点产线工业级智慧质检系统 - 主配置文件
+# 修改后重启系统生效；部分参数可在 Web 界面实时调整
+# ============================================================
+
+# ---------- 系统基本信息 ----------
+system:
+  name: "糕点产线工业级智慧质检系统"
+  version: "1.0.0"
+  company: "广西科技师范学院 × 广西家乐轩食品有限公司"
+  language: "zh-CN"
+
+# ---------- 摄像头配置 ----------
+camera:
+  # 采集源类型：webcam(USB摄像头/笔记本摄像头) / gstreamer(RK3588硬解码) / video(视频文件演示)
+  source_type: "webcam"
+  # 摄像头设备编号（笔记本通常为0），也可填视频文件路径用于演示
+  device: 0
+  # 采集分辨率（宽×高）
+  width: 1280
+  height: 720
+  # 目标帧率
+  fps: 30
+  # 自动曝光（0=关闭, 1=开启），工业场景建议关闭以保持稳定
+  auto_exposure: 1
+  # 曝光值（auto_exposure=0时生效，单位ms）
+  exposure: 20
+  # 旋转角度：0 / 90 / 180 / 270
+  rotation: 0
+  # GStreamer 管道（仅 source_type=gstreamer 时使用，RK3588 MIPI摄像头）
+  gstreamer_pipe: "v4l2src device=/dev/video0 ! video/x-raw,width=1280,height=720,framerate=30/1 ! videoconvert ! appsink"
+
+# ---------- 感兴趣区域(ROI) ----------
+# 仅在该区域内执行检测，可排除产线边缘、背景等干扰
+roi:
+  enabled: true
+  # 相对坐标（0~1），[x1, y1, x2, y2]
+  # 默认取画面中央 80% 区域
+  x1: 0.10
+  y1: 0.10
+  x2: 0.90
+  y2: 0.90
+
+# ---------- 检测引擎配置 ----------
+detection:
+  # 检测器类型：
+  #   rule_based  - 规则法质检（开箱即用，无需训练，推荐初期使用）
+  #   yolo        - YOLO深度学习检测（需自行训练模型，放 .pt/.onnx 到 data/models/）
+  #   rknn        - RKNN推理（仅RK3588/RK3572，需 .rknn 模型）
+  #   demo        - 演示模拟器（无实物时合成缺陷画面，用于对接演示）
+  engine: "rule_based"
+
+  # 检测间隔（帧），1=每帧检测，数值越大CPU占用越低
+  detect_interval: 1
+
+  # ---------- 规则法参数 ----------
+  rule_based:
+    # 最小目标面积（像素），小于此值的轮廓忽略（过滤噪点）
+    min_object_area: 500
+    # 最大目标面积（像素），大于此值可能是背景，忽略
+    max_object_area: 200000
+    # 颜色异常检测：糕点表面颜色偏离基准的阈值（HSV空间）
+    color_deviation_threshold: 30
+    # 形状完整度阈值（0~1），低于此值判定为破损/缺角
+    shape_completeness_threshold: 0.75
+    # 尺寸偏差阈值（%），相对标准尺寸的偏差超过此比例判定异常
+    size_deviation_percent: 25
+    # 异物检测：非糕点色区域的最小面积（像素），判定为异物
+    foreign_object_min_area: 20
+    # 异物颜色范围（HSV），头发通常为深色，可在此调整
+    foreign_object_hsv_lower: [0, 0, 0]
+    foreign_object_hsv_upper: [180, 255, 60]
+    # 表面缺陷检测：斑点/焦斑/空洞的最小面积
+    surface_defect_min_area: 30
+
+  # ---------- YOLO 模型参数 ----------
+  yolo:
+    # 模型文件路径（.pt 或 .onnx），放在 data/models/ 目录下
+    model_path: "data/models/best.pt"
+    # 置信度阈值
+    conf_threshold: 0.5
+    # IOU 阈值（NMS用）
+    iou_threshold: 0.45
+    # 输入尺寸
+    input_size: 640
+    # 类别名称映射（根据训练时的 data.yaml 填写）
+    class_names:
+      0: "foreign_object"   # 异物
+      1: "defect"           # 表面缺陷
+      2: "broken"           # 破损
+      3: "over_baked"       # 烤焦
+      4: "under_baked"      # 未烤熟
+
+  # ---------- RKNN 模型参数（RK3588/RK3572）----------
+  rknn:
+    model_path: "data/models/best.rknn"
+    conf_threshold: 0.5
+    iou_threshold: 0.45
+    input_size: 640
+    class_names:
+      0: "foreign_object"
+      1: "defect"
+
+# ---------- 报警输出 ----------
+alarm:
+  # 报警方式：console(控制台/日志) / gpio(RK3588 GPIO) / serial(串口) / http(HTTP回调)
+  # 可同时启用多种，用逗号分隔
+  methods: "console"
+  # GPIO 引脚编号（RK3588 物理引脚，BCM编号），接声光报警器
+  gpio_pin: 18
+  # 报警持续时间（秒）
+  duration: 3
+  # 串口配置
+  serial:
+    port: "/dev/ttyS0"
+    baudrate: 9600
+  # HTTP 回调地址（检测到不合格时 POST 结果到此地址）
+  http_url: ""
+
+# ---------- 数据记录 ----------
+logging:
+  # 是否保存检测日志（CSV格式）
+  save_log: true
+  # 日志目录
+  log_dir: "data/logs"
+  # 是否保存不合格品截图
+  save_defect_snapshot: true
+  # 截图目录
+  snapshot_dir: "data/snapshots"
+  # 截图格式：jpg / png
+  snapshot_format: "jpg"
+  # 日志保留天数（0=永久保留）
+  retention_days: 30
+
+# ---------- Web 服务 ----------
+web:
+  host: "0.0.0.0"       # 0.0.0.0 允许局域网访问，127.0.0.1 仅本机
+  port: 8080             # 服务端口
+  debug: false           # 调试模式（生产环境务必关闭）
+  # 视频流帧率（Web端显示，不影响实际检测帧率）
+  stream_fps: 15
+  # JPEG 质量（1~100）
+  jpeg_quality: 85

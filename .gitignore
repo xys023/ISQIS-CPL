@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# 数据文件（运行时生成）
+data/logs/*.csv
+data/snapshots/*/
+data/snapshots/*.jpg
+data/snapshots/*.png
+data/models/*.pt
+data/models/*.onnx
+data/models/*.rknn
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log

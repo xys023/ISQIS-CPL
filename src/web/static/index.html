@@ -1,1 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>糕点产线工业级智慧质检系统</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <div class="logo-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v6m0 10v6m11-11h-6M7 12H1m15.5-7.5l-4.2 4.2m-4.6 4.6l-4.2 4.2m0-13l4.2 4.2m4.6 4.6l4.2 4.2"/>
+                </svg>
+            </div>
+            <div>
+                <h1 id="system-name">糕点产线工业级智慧质检系统</h1>
+                <span class="subtitle" id="system-company">广西科技师范学院 × 广西家乐轩食品有限公司</span>
+            </div>
+        </div>
+        <div class="top-bar-right">
+            <div class="status-badge" id="system-status">
+                <span class="status-dot running"></span>
+                <span id="status-text">运行中</span>
+            </div>
+            <div class="time-display" id="current-time">--:--:--</div>
+        </div>
+    </header>
 
+    <!-- 主内容区 -->
+    <main class="main-container">
+        <!-- 左侧：视频监控区 -->
+        <section class="video-section">
+            <div class="panel video-panel">
+                <div class="panel-header">
+                    <span class="panel-title">实时监控</span>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" id="btn-pause" onclick="togglePause()">暂停</button>
+                        <button class="btn btn-sm btn-secondary" onclick="resetStats()">重置统计</button>
+                    </div>
+                </div>
+                <div class="video-container">
+                    <img id="video-feed" src="/video_feed" alt="实时视频流" />
+                    <div class="video-overlay" id="video-overlay">
+                        <div class="overlay-info">
+                            <span id="overlay-defect">等待检测...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="video-footer">
+                    <div class="video-meta">
+                        <span>检测引擎: <strong id="engine-type">规则法</strong></span>
+                        <span>摄像头: <strong id="camera-type">USB</strong></span>
+                        <span>推理: <strong id="infer-time">-- ms</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 缺陷截图画廊 -->
+            <div class="panel snapshots-panel">
+                <div class="panel-header">
+                    <span class="panel-title">不合格品记录</span>
+                    <button class="btn btn-sm btn-link" onclick="refreshSnapshots()">刷新</button>
+                </div>
+                <div class="snapshots-grid" id="snapshots-grid">
+                    <div class="empty-hint">暂无不合格品记录</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右侧：数据面板 -->
+        <aside class="data-section">
+            <!-- 统计卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card stat-total">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="stat-total">0</span>
+                        <span class="stat-label">总检测数</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-pass">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="stat-pass">0</span>
+                        <span class="stat-label">合格品</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-fail">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="stat-fail">0</span>
+                        <span class="stat-label">不合格品</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-rate">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20V10M18 20V4M6 20v-4"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="stat-pass-rate">0%</span>
+                        <span class="stat-label">合格率</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 缺陷类型分布 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">缺陷类型分布</span>
+                </div>
+                <div class="defect-chart" id="defect-chart">
+                    <div class="empty-hint">暂无数据</div>
+                </div>
+            </div>
+
+            <!-- 系统性能 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">系统性能</span>
+                </div>
+                <div class="perf-list">
+                    <div class="perf-item">
+                        <span class="perf-label">检测帧率</span>
+                        <span class="perf-value" id="perf-fps">0 FPS</span>
+                    </div>
+                    <div class="perf-item">
+                        <span class="perf-label">采集帧率</span>
+                        <span class="perf-value" id="perf-cam-fps">0 FPS</span>
+                    </div>
+                    <div class="perf-item">
+                        <span class="perf-label">运行时长</span>
+                        <span class="perf-value" id="perf-runtime">00:00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 参数配置 -->
+            <div class="panel config-panel">
+                <div class="panel-header">
+                    <span class="panel-title">参数配置</span>
+                    <button class="btn btn-sm btn-link" onclick="toggleConfig()">展开</button>
+                </div>
+                <div class="config-body" id="config-body" style="display:none;">
+                    <div class="config-group">
+                        <label>检测引擎</label>
+                        <select id="cfg-engine" onchange="updateConfig('detection.engine', this.value)">
+                            <option value="rule_based">规则法（开箱即用）</option>
+                            <option value="yolo">YOLO 深度学习</option>
+                            <option value="rknn">RKNN（RK3588 NPU）</option>
+                            <option value="demo">演示模拟器</option>
+                        </select>
+                    </div>
+                    <div class="config-group">
+                        <label>置信度阈值: <span id="cfg-conf-val">0.50</span></label>
+                        <input type="range" id="cfg-conf" min="0.1" max="0.95" step="0.05" value="0.5"
+                               oninput="document.getElementById('cfg-conf-val').textContent=this.value"
+                               onchange="updateConfig('detection.yolo.conf_threshold', parseFloat(this.value))">
+                    </div>
+                    <div class="config-group">
+                        <label>检测间隔(帧): <span id="cfg-interval-val">1</span></label>
+                        <input type="range" id="cfg-interval" min="1" max="10" step="1" value="1"
+                               oninput="document.getElementById('cfg-interval-val').textContent=this.value"
+                               onchange="updateConfig('detection.detect_interval', parseInt(this.value))">
+                    </div>
+                    <div class="config-group">
+                        <label>
+                            <input type="checkbox" id="cfg-roi" checked onchange="updateConfig('roi.enabled', this.checked)">
+                            启用 ROI 检测区域
+                        </label>
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="saveConfig()">保存配置</button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
